@@ -6,7 +6,7 @@ const router = express.Router();
 
 export default function baseRouter() {
   router.get("/", (req, res) => {
-    res.send("Welcome in API Receptionist Padel" + process.env.AYO_BASE_URL);
+    res.send("Welcome in API Padel Admin");
   });
 
   // --> get csrf token

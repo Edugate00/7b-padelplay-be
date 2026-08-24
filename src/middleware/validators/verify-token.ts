@@ -1,55 +1,81 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { TokenUtil, TokenPayload } from "../../utils/token.util";
+import { NextFunction, Request, Response } from "express";
+import {
+  IRefreshToken,
+  IResponseUserByID,
+  ISerilizeUser,
+  JwtPayload,
+} from "../../interfaces/auth/auth-interfaces";
+import { decryptId, generateJWT, verifyJWT } from "../../utils/encryptDecrpyt";
+import { getUserByID } from "../../model/auth/user/user";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload | any;
-    }
-  }
-}
-
-export const verifyToken = (
+export default async function verifyToken(
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+) {
+  const authHeader =
+    (req.headers?.authorization as string) ||
+    (req.cookies?.authToken as string) ||
+    (req.cookies?.token as string);
+
+  if (!authHeader) {
+    res.status(401).json({
+      statusCode: 401,
+      message: "Token not found",
+    });
+    return;
+  }
+
+  // --> get token
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader;
+
   try {
-    let token: string | undefined;
+    const decodedToken = (await verifyJWT(token as string)) as JwtPayload;
 
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    } else if (req.query && req.query.token) {
-      token = req.query.token as string;
-    }
+    // --> Get fresh user data from SAP DB
+    const encryptedUserID = decodedToken.serilizedUser.UserID;
+    const decryptedUserID = decryptId(encryptedUserID);
+    const userData = (await getUserByID(decryptedUserID)) as IResponseUserByID;
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Akses ditolak. Token tidak ditemukan.",
+    // --> user not found and will return Unauthorized (401)
+    if (!userData) {
+      res.status(401).json({
+        statusCode: 401,
+        message: "User data is undefined",
       });
+      return;
     }
 
-    const decoded = TokenUtil.verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({
-        success: false,
-        message: "Token tidak valid atau telah kadaluarsa.",
-      });
-    }
+    const fullUser = {
+      UserID: encryptedUserID,
+      Fullname: (userData.USER_FULLNAME || "").trim(),
+      Email: (userData.USER_EMAIL || decodedToken.serilizedUser?.Email || "").trim(),
+      IsVerified: userData.IS_VERIFIED === "X",
+      ProfilePicture: userData.USER_PROFILE_PICT ?? null,
+      Location: userData.LOCATION || "",
+      TokenID: decodedToken.serilizedUser.TokenID || "",
+      PhoneNumber: userData.PHONE_NUMBER || "",
+      Role: userData.ROLE_NAME || "",
+      RoleDesc: userData.ROLE_DESC || "",
+      MemberDesc: userData.MEMBER_NAME || "",
+      IsGoogleAccount: userData.IS_GOOGLE_ACC || "",
+    } as ISerilizeUser;
 
-    req.user = decoded;
-    return next();
+    const newToken = generateJWT(fullUser);
+    const freshCredentials = {
+      freshToken: newToken,
+      serializeUser: fullUser,
+      user: fullUser,
+    };
+
+    req.user = freshCredentials;
+    next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Gagal memverifikasi token.",
+    res.status(401).json({
+      statusCode: 401,
+      error,
     });
   }
-};
-
-export default verifyToken;
+}

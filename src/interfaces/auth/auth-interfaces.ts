@@ -26,6 +26,7 @@ export interface IResponseUserByID extends IResponseUserByEmail {
 
 export interface IResponseUserByEmail {
   USER_ID: string;
+  USER_EMAIL?: string;
   IS_VERIFIED: string;
   USER_PASSWORD: string;
   USER_FULLNAME: string;
@@ -101,7 +102,6 @@ export interface IUserProfile {
   PhoneNumber: string;
   Role: string;
   RoleDesc: string;
-  IsGoogleAccount: boolean;
 }
 
 export interface IBodyToken {

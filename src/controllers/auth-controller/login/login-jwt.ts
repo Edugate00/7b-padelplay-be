@@ -1,65 +1,86 @@
-import { Request, Response } from "express";
-import bcrypt from "bcrypt";
-import { UserModel } from "../../../model/user.model";
-import { TokenUtil } from "../../../utils/token.util";
+import { NextFunction, Request, Response } from "express";
+import passport from "passport";
+import {
+  ISerilizeUser,
+  IAxiosAuthErrorList,
+  IUserProfile,
+} from "../../../interfaces/auth/auth-interfaces";
+import { dynamicExpiresJWT } from "../../../utils/encryptDecrpyt";
 
-export const loginJWTController = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+type PassportInfo = { message?: string } | undefined;
 
-    if (!email || !password) {
-      return res.status(422).json({
-        success: false,
-        message: "Email dan password wajib diisi.",
-      });
-    }
-
-    const user = await UserModel.findByEmail(email);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Email atau password salah.",
-      });
-    }
-
-    let isPasswordValid = false;
-    if (user.USER_PASSWORD) {
-      if (user.USER_PASSWORD.startsWith("$2a$") || user.USER_PASSWORD.startsWith("$2b$")) {
-        isPasswordValid = await bcrypt.compare(password, user.USER_PASSWORD);
-      } else {
-        isPasswordValid = password === user.USER_PASSWORD;
+export const loginJWTController = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  passport.authenticate(
+    "local",
+    (err: unknown, user: ISerilizeUser | false, info: PassportInfo) => {
+      if (err) {
+        return next(err);
       }
+      if (!user) {
+        const msg = info?.message ?? "Authentication failed";
+        const errorList: IAxiosAuthErrorList = {
+          errors: [
+            {
+              location: "auth",
+              msg,
+              path: "authentication",
+              type: "authorization",
+              value: "",
+            },
+          ],
+        };
+        return res.status(401).json({
+          statusCode: 401,
+          ...errorList,
+        });
+      }
+
+      dynamicExpiresJWT(user, "24h")
+        .then((jwtToken) => {
+          const isProd = process.env.NODE_ENV?.toLowerCase() === "prd";
+
+          res.cookie("authToken", jwtToken, {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: "strict",
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            domain: isProd ? process.env.COOKIES_DOMAIN : undefined,
+          });
+
+          const userData: IUserProfile = {
+            Fullname: user.Fullname,
+            Email: user.Email,
+            IsVerified: user.IsVerified,
+            ProfileImage: user.ProfilePicture ?? "",
+            PhoneNumber: user.PhoneNumber,
+            MemberDesc: user.MemberDesc,
+            Role: user.Role,
+            RoleDesc: user.RoleDesc,
+          };
+
+          req.user = {
+            Email: user.Email,
+            UserID: user.UserID,
+          };
+
+          return res.status(200).json({
+            success: true,
+            message: "Login success",
+            token: jwtToken,
+            user: {
+              id: user.UserID,
+              name: user.Fullname,
+              email: user.Email,
+              role: user.Role,
+            },
+            profile: userData,
+          });
+        })
+        .catch((tokenErr: unknown) => next(tokenErr));
     }
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Email atau password salah.",
-      });
-    }
-
-    const role = user.ROLE_NAME || "admin";
-    const token = TokenUtil.generateToken({
-      email: user.USER_EMAIL,
-      role: role as "admin" | "controller" | "display",
-      permissions: ["read", "write", "admin"],
-    });
-
-    return res.status(200).json({
-      token,
-      user: {
-        id: user.USER_ID,
-        name: user.USER_FULLNAME,
-        email: user.USER_EMAIL,
-        role: role,
-      },
-    });
-  } catch (error) {
-    console.error("Login Controller Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan internal pada server.",
-    });
-  }
+  )(req, res, next);
 };

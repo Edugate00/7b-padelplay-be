@@ -1,0 +1,26 @@
+export const setQueryEmail = () => {
+  const query = `
+  SELECT TOP 1 T_ZUSERS.USER_ID as USER_ID, 
+               T_ZUSERS.IS_VERIFIED AS IS_VERIFIED, 
+               T_ZUSERS.USER_PASSWORD AS USER_PASSWORD, 
+               T_ZUSERS.USER_FULLNAME AS USER_FULLNAME, 
+               T_ZUSERS.ROLE_ID AS ROLE_ID,
+               T_ZUSERS.LOCATION AS LOCATION,
+               T_ZUSERS.USER_PROFILE_PICT AS USER_PROFILE_PICT,
+               T_ZUSERS.USER_EMAIL AS USER_EMAIL,
+               T_ZUSERS.PHONE_NUMBER AS PHONE_NUMBER,
+               T_ZUSERS.MEMBER_ID AS MEMBER_ID,
+               T_ZROLE.ROLE_NAME AS ROLE_NAME,
+               T_ZROLE.ROLE_DESC AS ROLE_DESC,
+               T_T151T.KTEXT AS MEMBER_NAME
+  FROM trn.ZUSERS as T_ZUSERS
+    INNER JOIN trn.T151T as T_T151T on T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
+    AND T_T151T.MANDT = @Client
+    INNER JOIN trn.ZROLE as T_ZROLE on T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
+    AND T_ZROLE.MANDT = @Client
+    WHERE USER_EMAIL = @email
+    AND T_ZUSERS.MANDT = @Client
+    AND MEMBER_ID = 'ZR'
+`;
+  return query;
+};

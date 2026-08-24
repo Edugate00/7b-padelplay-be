@@ -1,6 +1,4 @@
-import mssql from "mssql";
-import { runSelectSingleQuery } from "../config/db/db-helperQuery";
-import bcrypt from "bcrypt";
+import { getUserByEmail } from "./auth/user/user";
 
 export interface UserRecord {
   USER_ID: string | number;
@@ -12,37 +10,31 @@ export interface UserRecord {
 
 export class UserModel {
   /**
-   * Find user by email from MSSQL DB or return mock fallback if DB fails/unreachable
+   * Find user by email from SAP MSSQL DB (trn.ZUSERS)
    */
   static async findByEmail(email: string): Promise<UserRecord | null> {
     try {
-      const query = `
-        SELECT USER_ID, USER_EMAIL, USER_FULLNAME, USER_PASSWORD, ROLE_NAME
-        FROM USERS
-        WHERE USER_EMAIL = @email
-      `;
-      const params = {
-        email: { type: mssql.VarChar, value: email },
-      };
+      // Priority 1: Check receptionist / staff user (MEMBER_ID = 'ZR')
+      let users = await getUserByEmail(email, true);
 
-      const user = await runSelectSingleQuery(query, params);
-      if (user) {
-        return user;
+      // Priority 2: Check general customer user (MEMBER_ID != 'ZR')
+      if (!users || users.length === 0) {
+        users = await getUserByEmail(email, false);
+      }
+
+      if (users && users.length > 0) {
+        const u = users[0];
+        return {
+          USER_ID: u.USER_ID,
+          USER_EMAIL: u.USER_EMAIL || email,
+          USER_FULLNAME: u.USER_FULLNAME,
+          USER_PASSWORD: u.USER_PASSWORD,
+          ROLE_NAME: u.ROLE_NAME || "admin",
+        };
       }
     } catch (error) {
-      console.warn("DB Query failed or DB unreachable, checking fallback user...", (error as Error).message);
-    }
-
-    // Fallback default admin user for development / offline testing
-    if (email.toLowerCase() === "admin@padelplay.id") {
-      const hashedPassword = await bcrypt.hash("password123", 10);
-      return {
-        USER_ID: 1,
-        USER_EMAIL: "admin@padelplay.id",
-        USER_FULLNAME: "Super Admin PadelPlay",
-        USER_PASSWORD: hashedPassword,
-        ROLE_NAME: "admin",
-      };
+      console.error("Failed to query user from SAP DB:", error);
+      throw error;
     }
 
     return null;
