@@ -36,12 +36,12 @@ export async function runSelectQuery(
 
 export async function runSelectSingleQuery(
   query: string,
-  params: Object | any
+  params: Object | any,
 ): Promise<any> {
   try {
     const pool = await dbConnection();
     const request = pool.request();
-
+    ``;
     // --> bind parameter
     for (const key in params) {
       request.input(key, params[key].type, params[key].value);
@@ -69,7 +69,7 @@ export async function runSelectSingleQuery(
 
 export async function runInsertQuery(
   query: string,
-  params: Object | any
+  params: Object | any,
 ): Promise<number> {
   try {
     const pool = await dbConnection();
@@ -89,7 +89,7 @@ export async function runInsertQuery(
 
 export async function runUpdateQuery(
   query: string,
-  params: Object | any
+  params: Object | any,
 ): Promise<number> {
   try {
     const pool = await dbConnection();
@@ -107,7 +107,6 @@ export async function runUpdateQuery(
   }
 }
 
-
 export const setQueryEmail = () => {
   const query = `
   SELECT TOP 1 T_ZUSERS.USER_ID as USER_ID, 
@@ -123,10 +122,10 @@ export const setQueryEmail = () => {
                T_ZROLE.ROLE_NAME AS ROLE_NAME,
                T_ZROLE.ROLE_DESC AS ROLE_DESC,
                T_T151T.KTEXT AS MEMBER_NAME
-  FROM trn.ZUSERS as T_ZUSERS
-    INNER JOIN trn.T151T as T_T151T on T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
+  FROM dev.ZUSERS as T_ZUSERS
+    INNER JOIN dev.T151T as T_T151T on T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
     AND T_T151T.MANDT = @Client
-    INNER JOIN trn.ZROLE as T_ZROLE on T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
+    INNER JOIN dev.ZROLE as T_ZROLE on T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
     AND T_ZROLE.MANDT = @Client
     WHERE USER_EMAIL = @email
     AND T_ZUSERS.MANDT = @Client

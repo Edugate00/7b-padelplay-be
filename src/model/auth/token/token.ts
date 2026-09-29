@@ -10,7 +10,7 @@ export async function resetPasswordHandler(payload: IResetPassword) {
   try {
     const MANDT = process.env.CLIENT;
     const query = `
-        UPDATE trn.ZUSERS 
+        UPDATE dev.ZUSERS 
          SET 
           USER_PASSWORD = @new_password
          WHERE 

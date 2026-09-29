@@ -13,11 +13,11 @@ import {
 } from "../../config/db/db-helperQuery";
 
 export async function createNewToken(
-  payload: IPayloadCreateToken
+  payload: IPayloadCreateToken,
 ): Promise<IResponseCreateOauthUser> {
   try {
     const query = `
-                INSERT INTO trn.ZTOKENS
+                INSERT INTO dev.ZTOKENS
                 (
                     MANDT,
                     TOKEN_ID,
@@ -109,11 +109,11 @@ export async function createNewToken(
 
 export async function deleteToken(
   tokenID: string,
-  userID: string
+  userID: string,
 ): Promise<IResponseCreateOauthUser> {
   try {
     const query = `
-              DELETE trn.ZTOKENS
+              DELETE dev.ZTOKENS
                 WHERE
                   USER_ID = @UserID
                   AND TOKEN_ID = @TokenID
@@ -144,12 +144,12 @@ export async function deleteToken(
 }
 
 export async function getTokenCredentials(
-  payload: ITokenCredentialsPayload
+  payload: ITokenCredentialsPayload,
 ): Promise<ITokenCredentials[]> {
   try {
     const query = `
                 SELECT TOP 1 IS_USED, VALID_FROM_DATE, VALID_FROM_TIME, VALID_TO_DATE, VALID_TO_DATE_TIME
-                FROM trn.ZTOKENS
+                FROM dev.ZTOKENS
                 WHERE
                     USER_ID = @UserID
                     AND TOKEN_ID = @TokenID
@@ -175,7 +175,7 @@ export async function getTokenCredentials(
 export async function updateValidStatusToken(payload: IPayloadUpdateToken) {
   try {
     const query = `
-            UPDATE trn.ZTOKENS
+            UPDATE dev.ZTOKENS
             SET
                 IS_USED = 'X',
                 UPDATED_AT = @UpdatedAt

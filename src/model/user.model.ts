@@ -10,7 +10,7 @@ export interface UserRecord {
 
 export class UserModel {
   /**
-   * Find user by email from SAP MSSQL DB (trn.ZUSERS)
+   * Find user by email from SAP MSSQL DB (dev.ZUSERS)
    */
   static async findByEmail(email: string): Promise<UserRecord | null> {
     try {
