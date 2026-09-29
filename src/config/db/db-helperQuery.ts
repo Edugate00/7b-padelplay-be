@@ -82,7 +82,6 @@ export async function runInsertQuery(
     const result = await request.query(query);
     return result.rowsAffected[0]; // jumlah rows inserted
   } catch (err) {
-    console.error("Insert Query Error:", err);
     throw err;
   }
 }

@@ -76,7 +76,6 @@ export async function getAdvImages(
 export async function insertAdvImage(
   p: IPayloadInsertAdv,
 ) {
-  console.log(p.imgUrl)
   const query = `
     INSERT INTO ${TABLE}
       (
