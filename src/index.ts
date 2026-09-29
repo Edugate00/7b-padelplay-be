@@ -24,7 +24,7 @@ const app = express();
 app.set("trust proxy", true);
 app.use(mainCorsConfig); // --> Cors middleware
 app.use("/uploads", express.static("uploads"));
-app.use("/IMAGES", express.static(path.resolve("uploads", "IMAGES")));
+app.use("/assets/images/sponsor", express.static(path.resolve("assets", "images", "sponsor")));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
