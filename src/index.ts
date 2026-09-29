@@ -8,6 +8,7 @@ import passport from "passport";
 import baseRouter from "./routes/routes";
 import session from "express-session";
 import http from "http";
+import path from "path";
 
 /* ---------------------------- Router middleware --------------------------- */
 // --> init dotenv
@@ -22,6 +23,8 @@ const app = express();
 // --> Middleware
 app.set("trust proxy", true);
 app.use(mainCorsConfig); // --> Cors middleware
+app.use("/uploads", express.static("uploads"));
+app.use("/IMAGES", express.static(path.resolve("uploads", "IMAGES")));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -82,8 +85,14 @@ app.use(csrfErrorHandler);
 
 app.use("/api", (req, res, next) => {
   const m = req.method.toUpperCase();
-  // Bypass CSRF protection for login/logout endpoints
-  if (req.path.startsWith("/auth/login") || req.path.startsWith("/auth/logout")) {
+  // Bypass CSRF protection for login/logout and temporary image upload testing
+  if (
+    req.path.startsWith("/auth/login") ||
+    req.path.startsWith("/auth/logout")
+  ) {
+    return next();
+  }
+  if (m === "POST" && req.path === "/sponsor/uplord-image/images") {
     return next();
   }
   return ["POST", "PUT", "PATCH", "DELETE"].includes(m)

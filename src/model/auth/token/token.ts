@@ -1,4 +1,4 @@
-import { runUpdateQuery } from "../../../db/db-helperQuery";
+import { runUpdateQuery } from "../../../config/db/db-helperQuery";
 import {
   IErrorMSSQL,
   IResetPassword,

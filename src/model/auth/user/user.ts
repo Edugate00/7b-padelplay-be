@@ -1,10 +1,10 @@
-import { runSelectQuery } from "../../../db/db-helperQuery";
+import { runSelectQuery } from "../../../config/db/db-helperQuery";
 import mssql from "mssql";
 import {
   IResponseUserByEmail,
   IResponseUserByID,
 } from "../../../interfaces/auth/auth-interfaces";
-import { setQueryEmail } from "../../../utils/db/helperQuery";
+import { setQueryEmail } from "../../../config/db/db-helperQuery";
 export async function getUserByID(userID: string): Promise<IResponseUserByID> {
   const query = `
     SELECT TOP 1 
@@ -51,14 +51,13 @@ export async function getUserByID(userID: string): Promise<IResponseUserByID> {
   }
 }
 
-
 // --> Will be executed while login without google
 export async function getUserReceptionist(
   email: string,
 ): Promise<IResponseUserByEmail[]> {
   try {
     const query = setQueryEmail() as string;
-    const result = await runSelectQuery<IResponseUserByEmail>(query, {
+    const result = await runSelectQuery(query, {
       email: {
         type: mssql.Char(255),
         value: email.toLowerCase(),
@@ -72,7 +71,7 @@ export async function getUserReceptionist(
         value: Number(process.env.CLIENT) || 388,
       },
     });
-    return result;
+    return result as IResponseUserByEmail[];
   } catch (error) {
     console.error(error);
     throw error; // lempar kembali biar caller bisa catch

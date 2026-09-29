@@ -10,7 +10,7 @@ import {
   runInsertQuery,
   runSelectQuery,
   runUpdateQuery,
-} from "../../db/db-helperQuery";
+} from "../../config/db/db-helperQuery";
 
 export async function createNewToken(
   payload: IPayloadCreateToken
