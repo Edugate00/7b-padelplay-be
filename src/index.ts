@@ -81,24 +81,21 @@ const csrfErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   return next(err);
 };
 
-app.use(csrfErrorHandler);
-
 app.use("/api", (req, res, next) => {
   const m = req.method.toUpperCase();
-  // Bypass CSRF protection for login/logout and temporary image upload testing
+  // Bypass CSRF protection for login/logout
   if (
     req.path.startsWith("/auth/login") ||
     req.path.startsWith("/auth/logout")
   ) {
     return next();
   }
-  if (m === "POST" && req.path === "/sponsor/uplord-image/images") {
-    return next();
-  }
   return ["POST", "PUT", "PATCH", "DELETE"].includes(m)
     ? csrfProtection(req, res, next)
     : next();
 });
+
+app.use(csrfErrorHandler);
 
 // --> init logging
 app.get("/healthz", async (req, res) => {

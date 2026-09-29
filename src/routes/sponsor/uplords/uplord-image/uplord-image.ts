@@ -4,7 +4,11 @@ import mssql from "mssql";
 import fs from "fs";
 import path from "path";
 import { randomBytes } from "crypto";
-import { runSelectQuery, runSelectSingleQuery } from "../../../../config/db/db-helperQuery";
+import {
+  runSelectQuery,
+  runSelectSingleQuery,
+} from "../../../../config/db/db-helperQuery";
+import verifyToken from "../../../../middleware/validators/verify-token";
 
 const uploadDirectory = path.resolve("uploads", "IMAGES", "SPONSOR");
 fs.mkdirSync(uploadDirectory, { recursive: true });
@@ -34,7 +38,6 @@ const toFullUrl = (value: string) =>
     ? value
     : `${process.env.BACKEND_BASE_URL}/IMAGES/SPONSOR/${path.basename(value)}`;
 
-
 const MANDT = process.env.CLIENT;
 const TABLE = `${process.env.DB_NAME!.toLowerCase()}.ZPDL_ADV`;
 
@@ -63,7 +66,7 @@ export interface IPayloadInsertAdv {
 
 // --> GET semua gambar (IMG_URL terisi), opsional filter court / dist_chan
 export async function getAdvImages(
-  filter: { court?: string; distChan?: string } = {}
+  filter: { court?: string; distChan?: string } = {},
 ): Promise<IAdvImage[]> {
   const params: Record<string, { type: any; value: any }> = {
     client: { type: mssql.Char(3), value: MANDT },
@@ -91,9 +94,8 @@ export async function getAdvImages(
   return (await runSelectQuery(query, params)) as IAdvImage[];
 }
 
-
 export async function insertAdvImage(
-  p: IPayloadInsertAdv
+  p: IPayloadInsertAdv,
 ): Promise<{ ID: string }> {
   const query = `
     INSERT INTO ${TABLE}
@@ -139,8 +141,12 @@ export default function uploadImageRoute() {
   router.get("/images", async (req, res) => {
     try {
       const rows = await getAdvImages({
-        court: typeof req.query.court === "string" ? req.query.court : undefined,
-        distChan: typeof req.query.dist_chan === "string" ? req.query.dist_chan : undefined,
+        court:
+          typeof req.query.court === "string" ? req.query.court : undefined,
+        distChan:
+          typeof req.query.dist_chan === "string"
+            ? req.query.dist_chan
+            : undefined,
       });
 
       return res.status(200).json({
@@ -149,63 +155,88 @@ export default function uploadImageRoute() {
       });
     } catch (error) {
       console.error("Gagal mengambil data gambar:", error);
-      return res.status(500).json({ success: false, message: "Gagal mengambil data gambar" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Gagal mengambil data gambar" });
     }
   });
 
-  router.post("/images", (req, res, next) => {
-    upload.single("image")(req, res, (error) => {
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: error instanceof Error ? error.message : "Upload gambar gagal",
-        });
-      }
-      next();
-    });
-  }, async (req, res) => {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ success: false, message: "File gambar wajib diisi" });
-    }
-
-    const body = req.body as Record<string, unknown>;
-    const payload: IPayloadInsertAdv = {
-      validFrom: String(body.VALID_FROM ?? ""),
-      validTo: String(body.VALID_TO ?? ""),
-      showIndicator: body.SHOW_INDICATOR === "X" || body.SHOW_INDICATOR === "true" ? "X" : "",
-      imgUrl: `/IMAGES/SPONSOR/${file.filename}`,
-      duration: String(body.DURATION ?? ""),
-      qrUrl: String(body.QR_URL ?? ""),
-      court: String(body.COURT ?? ""),
-      distChan: String(body.DIST_CHAN ?? ""),
-    };
-
-    const errors: string[] = [];
-    if (!/^\d{8}$/.test(payload.validFrom)) errors.push("VALID_FROM harus YYYYMMDD");
-    if (!/^\d{8}$/.test(payload.validTo)) errors.push("VALID_TO harus YYYYMMDD");
-    if (payload.duration.length > 10) errors.push("DURATION maks 10 karakter");
-    if (payload.qrUrl.length > 50) errors.push("QR_URL maks 50 karakter");
-    if (payload.court.length > 20) errors.push("COURT maks 20 karakter");
-    if (payload.distChan.length !== 2) errors.push("DIST_CHAN harus 2 karakter");
-
-    if (errors.length) {
-      fs.unlink(file.path, () => {});
-      return res.status(400).json({ success: false, message: errors.join(", ") });
-    }
-
-    try {
-      const inserted = await insertAdvImage(payload);
-      return res.status(201).json({
-        success: true,
-        data: { ...payload, ID: inserted.ID, img_url: toFullUrl(payload.imgUrl) },
+  router.post(
+    "/images",
+    verifyToken,
+    (req, res, next) => {
+      upload.single("image")(req, res, (error) => {
+        if (error) {
+          return res.status(400).json({
+            success: false,
+            message:
+              error instanceof Error ? error.message : "Upload gambar gagal",
+          });
+        }
+        next();
       });
-    } catch (error) {
-      fs.unlink(file.path, () => {});
-      console.error("Gagal menyimpan gambar:", error);
-      return res.status(500).json({ success: false, message: "Gagal upload gambar" });
-    }
-  });
+    },
+    async (req, res) => {
+      const file = req.file;
+      if (!file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "File gambar wajib diisi" });
+      }
+
+      const body = req.body as Record<string, unknown>;
+      const payload: IPayloadInsertAdv = {
+        validFrom: String(body.VALID_FROM ?? ""),
+        validTo: String(body.VALID_TO ?? ""),
+        showIndicator:
+          body.SHOW_INDICATOR === "X" || body.SHOW_INDICATOR === "true"
+            ? "X"
+            : "",
+        imgUrl: `/IMAGES/SPONSOR/${file.filename}`,
+        duration: String(body.DURATION ?? ""),
+        qrUrl: String(body.QR_URL ?? ""),
+        court: String(body.COURT ?? ""),
+        distChan: String(body.DIST_CHAN ?? ""),
+      };
+
+      const errors: string[] = [];
+      if (!/^\d{8}$/.test(payload.validFrom))
+        errors.push("VALID_FROM harus YYYYMMDD");
+      if (!/^\d{8}$/.test(payload.validTo))
+        errors.push("VALID_TO harus YYYYMMDD");
+      if (payload.duration.length > 10)
+        errors.push("DURATION maks 10 karakter");
+      if (payload.qrUrl.length > 50) errors.push("QR_URL maks 50 karakter");
+      if (payload.court.length > 20) errors.push("COURT maks 20 karakter");
+      if (payload.distChan.length !== 2)
+        errors.push("DIST_CHAN harus 2 karakter");
+
+      if (errors.length) {
+        fs.unlink(file.path, () => {});
+        return res
+          .status(400)
+          .json({ success: false, message: errors.join(", ") });
+      }
+
+      try {
+        const inserted = await insertAdvImage(payload);
+        return res.status(201).json({
+          success: true,
+          data: {
+            ...payload,
+            ID: inserted.ID,
+            img_url: toFullUrl(payload.imgUrl),
+          },
+        });
+      } catch (error) {
+        fs.unlink(file.path, () => {});
+        console.error("Gagal menyimpan gambar:", error);
+        return res
+          .status(500)
+          .json({ success: false, message: "Gagal upload gambar" });
+      }
+    },
+  );
 
   return router;
 }
