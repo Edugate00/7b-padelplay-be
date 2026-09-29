@@ -1,5 +1,5 @@
 import express from "express";
-import uploadImageRoute from "./uplords/uplord-image/uplord-image";
+import uploadImageRoute from "./uplords/uploads-image/upload-image";
 
 const router = express.Router();
 
