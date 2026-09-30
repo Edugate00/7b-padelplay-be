@@ -8,6 +8,7 @@ import verifyToken from "../../middleware/validators/verify-token";
 import { IAdvImage, IPayloadInsertAdv } from "../../interfaces/sponsor/sponsor-interfaces";
 import { runInsertQuery, runSelectQuery, runSelectSingleQuery } from "../../config/db/db-helperQuery";
 import { encryptFile } from "../../utils/encrypt/encryptFile";
+import { logger } from "../../config/logger/pino";
 
 const router = express.Router();
 
@@ -17,19 +18,39 @@ fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => callback(null, uploadDirectory),
+
     filename: (_req, file, callback) => {
-      const filename = path
-        .basename(file.originalname)
-        .replace(/[^a-zA-Z0-9._-]/g, "_");
-      callback(null, encryptFile(filename) || `${randomBytes(5).toString("hex")}.png`);
+      const originalName = path.basename(file.originalname);
+      const extension = path.extname(originalName);
+      const filenameWithoutExtension = path.basename(
+        originalName,
+        extension
+      );
+
+      const sanitizedFilename = filenameWithoutExtension.replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_"
+      );
+
+      const encryptedFilename = encryptFile(sanitizedFilename);
+
+      callback(
+        null,
+        encryptedFilename
+          ? `${encryptedFilename}${extension}`
+          : `${randomBytes(5).toString("hex")}${extension}`
+      );
     },
   }),
+
   limits: { fileSize: 5 * 1024 * 1024 },
+
   fileFilter: (_req, file, callback) => {
     if (!file.mimetype.startsWith("image/")) {
       callback(new Error("File harus berupa gambar"));
       return;
     }
+
     callback(null, true);
   },
 });
@@ -152,13 +173,12 @@ async function updateAdvImage(
     SET VALID_FROM = @validFrom,
         VALID_TO = @validTo,
         SHOW_INDICATOR = @showIndicator,
-        IMG_URL = @imgUrl,
         DURATION = @duration,
         QR_URL = @qrUrl,
         COURT = @court,
         DIST_CHAN = @distChan
     OUTPUT INSERTED.ID, INSERTED.VALID_FROM, INSERTED.VALID_TO,
-           INSERTED.SHOW_INDICATOR, INSERTED.IMG_URL, INSERTED.DURATION,
+           INSERTED.SHOW_INDICATOR, INSERTED.DURATION,
            INSERTED.QR_URL, INSERTED.COURT, INSERTED.DIST_CHAN
     WHERE MANDT = @client AND ID = @id
   `;
@@ -169,7 +189,6 @@ async function updateAdvImage(
     validFrom: { type: mssql.NVarChar(8), value: payload.validFrom },
     validTo: { type: mssql.NVarChar(8), value: payload.validTo },
     showIndicator: { type: mssql.NVarChar(1), value: payload.showIndicator },
-    imgUrl: { type: mssql.NVarChar(50), value: payload.imgUrl },
     duration: { type: mssql.NVarChar(10), value: payload.duration },
     qrUrl: { type: mssql.NVarChar(50), value: payload.qrUrl },
     court: { type: mssql.NVarChar(20), value: payload.court },
@@ -339,14 +358,14 @@ export default function sponsorRouter() {
       const id = Array.isArray(req.params.id)
         ? req.params.id[0]
         : req.params.id;
-      if (!/^\d{1,3}$/.test(id)) {
-        if (req.file) await removeStoredImage(req.file.filename);
-        return res.status(400).json({ success: false, message: "ID tidak valid" });
-      }
-      const recordId = id.padStart(3, "0");
+      // if (!/^\d{1,3}$/.test(id)) {
+      //   if (req.file) await removeStoredImage(req.file.filename);
+      //   return res.status(400).json({ success: false, message: "ID tidak valid" });
+      // }
+      // const recordId = id.padStart(3, "0");
 
       try {
-        const existing = await getAdvImageById(recordId);
+        const existing = await getAdvImageById(id);
         if (!existing) {
           if (req.file) await removeStoredImage(req.file.filename);
           return res.status(404).json({ success: false, message: "Gambar tidak ditemukan" });
@@ -354,8 +373,8 @@ export default function sponsorRouter() {
 
         const body = req.body as Record<string, unknown>;
         const payload: IPayloadInsertAdv = {
-          validFrom: String(body.VALID_FROM ?? existing.validFrom),
-          validTo: String(body.VALID_TO ?? existing.validTo),
+          validFrom: String(body.validFrom ?? existing.validFrom),
+          validTo: String(body.validTo ?? existing.validTo),
           showIndicator:
             body.showIndicator === undefined
               ? existing.showIndicator
@@ -365,20 +384,21 @@ export default function sponsorRouter() {
           imgUrl: req.file
             ? `/assets/images/sponsor/${req.file.filename}`
             : existing.imgUrl,
-          duration: String(body.DURATION ?? existing.duration),
-          qrUrl: String(body.QR_URL ?? existing.qrUrl),
-          court: String(body.COURT ?? existing.court),
-          distChan: String(body.DIST_CHAN ?? existing.distChan),
+          duration: String(body.duration ?? existing.duration),
+          qrUrl: String(body.qrUrl ?? existing.qrUrl),
+          court: String(body.court ?? existing.court),
+          distChan: String(body.distChan ?? existing.distChan),
         };
 
         const errors = validateAdvPayload(payload);
-        if (payload.imgUrl.length > 50) errors.push("IMG_URL maks 50 karakter");
         if (errors.length) {
           if (req.file) await removeStoredImage(req.file.filename);
           return res.status(400).json({ success: false, message: errors.join(", ") });
         }
 
-        const updated = await updateAdvImage(recordId, payload);
+        logger.info({ payload }, "Update image payload")
+
+        const updated = await updateAdvImage(id, payload);
         if (!updated) {
           if (req.file) await removeStoredImage(req.file.filename);
           return res.status(404).json({ success: false, message: "Gambar tidak ditemukan" });
@@ -394,7 +414,7 @@ export default function sponsorRouter() {
 
         return res.status(200).json({
           success: true,
-          data: { ...updated, img_url: toFullUrl(updated.imgUrl) },
+          data: updated,
         });
       } catch (error) {
         if (req.file) await removeStoredImage(req.file.filename);

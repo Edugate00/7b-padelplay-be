@@ -13,10 +13,6 @@ const sponsorPath = path.resolve(
   "sponsor"
 );
 
-console.log("CWD:", process.cwd());
-console.log("Sponsor path:", sponsorPath);
-console.log("Exists:", fs.existsSync(sponsorPath));
-
 export default function baseRouter() {
   router.get("/", (req, res) => {
     res.send("Welcome in API Padel Admin");
