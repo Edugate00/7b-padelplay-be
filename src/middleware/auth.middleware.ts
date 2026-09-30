@@ -1,5 +1,5 @@
 import type http from "http";
-import { TokenPayload, TokenUtil } from "../utils/token.util";
+import { TokenPayload, TokenUtil } from "../interfaces/utils/token-util";
 
 export interface AuthResult {
   authenticated: boolean;
