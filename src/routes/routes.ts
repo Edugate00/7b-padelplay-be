@@ -2,6 +2,7 @@ import csurf from "csurf";
 import express from "express";
 import authRouter from "./auth/auth-routes";
 import sponsorRouter from "./sponsor/sponsor";
+import path from "path";
 
 const router = express.Router();
 
@@ -9,6 +10,8 @@ export default function baseRouter() {
   router.get("/", (req, res) => {
     res.send("Welcome in API Padel Admin");
   });
+
+  router.use("/assets/images/sponsor", express.static(path.resolve("assets", "images", "sponsor")));
 
   // --> get csrf token
   const csrfProtection = csurf({ cookie: true });
