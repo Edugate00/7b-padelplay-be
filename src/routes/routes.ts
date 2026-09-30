@@ -3,15 +3,26 @@ import express from "express";
 import authRouter from "./auth/auth-routes";
 import sponsorRouter from "./sponsor/sponsor";
 import path from "path";
+import fs from "fs";
 
 const router = express.Router();
+
+const sponsorPath = path.resolve(
+  "assets",
+  "images",
+  "sponsor"
+);
+
+console.log("CWD:", process.cwd());
+console.log("Sponsor path:", sponsorPath);
+console.log("Exists:", fs.existsSync(sponsorPath));
 
 export default function baseRouter() {
   router.get("/", (req, res) => {
     res.send("Welcome in API Padel Admin");
   });
 
-  router.use("/assets/images/sponsor", express.static(path.resolve("assets", "images", "sponsor")));
+  router.use("/assets/images/sponsor", express.static(sponsorPath));
 
   // --> get csrf token
   const csrfProtection = csurf({ cookie: true });
