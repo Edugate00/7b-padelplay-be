@@ -24,10 +24,10 @@ export async function getUserByID(userID: string): Promise<IResponseUserByID> {
       T_ZROLE.ROLE_NAME         AS ROLE_NAME,
       T_ZROLE.ROLE_DESC         AS ROLE_DESC,
       T_T151T.KTEXT             AS MEMBER_NAME
-    FROM dev.ZUSERS AS T_ZUSERS
-    LEFT JOIN dev.T151T AS T_T151T 
+    FROM ${process.env.DB_NAME!.toLowerCase()}.ZUSERS AS T_ZUSERS
+    LEFT JOIN ${process.env.DB_NAME!.toLowerCase()}.T151T AS T_T151T 
       ON T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
-    LEFT JOIN dev.ZROLE AS T_ZROLE 
+    LEFT JOIN ${process.env.DB_NAME!.toLowerCase()}.ZROLE AS T_ZROLE 
       ON T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
     WHERE USER_ID = @userID
       AND T_ZUSERS.MANDT = @Client

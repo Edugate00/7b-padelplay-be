@@ -121,10 +121,10 @@ export const setQueryEmail = () => {
                T_ZROLE.ROLE_NAME AS ROLE_NAME,
                T_ZROLE.ROLE_DESC AS ROLE_DESC,
                T_T151T.KTEXT AS MEMBER_NAME
-  FROM dev.ZUSERS as T_ZUSERS
-    INNER JOIN dev.T151T as T_T151T on T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
+  FROM ${process.env.DB_NAME!.toLowerCase()}.ZUSERS as T_ZUSERS
+    INNER JOIN ${process.env.DB_NAME!.toLowerCase()}.T151T as T_T151T on T_T151T.KDGRP = T_ZUSERS.MEMBER_ID
     AND T_T151T.MANDT = @Client
-    INNER JOIN dev.ZROLE as T_ZROLE on T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
+    INNER JOIN ${process.env.DB_NAME!.toLowerCase()}.ZROLE as T_ZROLE on T_ZROLE.ROLE_ID = T_ZUSERS.ROLE_ID
     AND T_ZROLE.MANDT = @Client
     WHERE USER_EMAIL = @email
     AND T_ZUSERS.MANDT = @Client

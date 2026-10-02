@@ -30,7 +30,7 @@ export interface IResponseUserByEmail {
 
 export class UserModel {
   /**
-   * Find user by email from SAP MSSQL DB (dev.ZUSERS)
+   * Find user by email from SAP MSSQL DB (${process.env.DB_NAME!.toLowerCase()}.ZUSERS)
    */
   static async findByEmail(email: string): Promise<UserRecord | null> {
     try {

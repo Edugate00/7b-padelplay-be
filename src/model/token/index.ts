@@ -17,7 +17,7 @@ export async function createNewToken(
 ): Promise<IResponseCreateOauthUser> {
   try {
     const query = `
-                INSERT INTO dev.ZTOKENS
+                INSERT INTO ${process.env.DB_NAME!.toLowerCase()}.ZTOKENS
                 (
                     MANDT,
                     TOKEN_ID,
@@ -113,7 +113,7 @@ export async function deleteToken(
 ): Promise<IResponseCreateOauthUser> {
   try {
     const query = `
-              DELETE dev.ZTOKENS
+              DELETE ${process.env.DB_NAME!.toLowerCase()}.ZTOKENS
                 WHERE
                   USER_ID = @UserID
                   AND TOKEN_ID = @TokenID
@@ -149,7 +149,7 @@ export async function getTokenCredentials(
   try {
     const query = `
                 SELECT TOP 1 IS_USED, VALID_FROM_DATE, VALID_FROM_TIME, VALID_TO_DATE, VALID_TO_DATE_TIME
-                FROM dev.ZTOKENS
+                FROM ${process.env.DB_NAME!.toLowerCase()}.ZTOKENS
                 WHERE
                     USER_ID = @UserID
                     AND TOKEN_ID = @TokenID
@@ -175,7 +175,7 @@ export async function getTokenCredentials(
 export async function updateValidStatusToken(payload: IPayloadUpdateToken) {
   try {
     const query = `
-            UPDATE dev.ZTOKENS
+            UPDATE ${process.env.DB_NAME!.toLowerCase()}.ZTOKENS
             SET
                 IS_USED = 'X',
                 UPDATED_AT = @UpdatedAt
