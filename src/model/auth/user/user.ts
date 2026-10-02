@@ -5,6 +5,7 @@ import {
   IResponseUserByID,
 } from "../../../interfaces/auth/auth-interfaces";
 import { setQueryEmail } from "../../../config/db/db-helperQuery";
+import { logger } from "../../../config/logger/pino";
 export async function getUserByID(userID: string): Promise<IResponseUserByID> {
   const query = `
     SELECT TOP 1 
@@ -71,6 +72,7 @@ export async function getUserReceptionist(
         value: Number(process.env.CLIENT) || 388,
       },
     });
+    logger.info({data: result, message: "User Query result"});
     return result as IResponseUserByEmail[];
   } catch (error) {
     console.error(error);
