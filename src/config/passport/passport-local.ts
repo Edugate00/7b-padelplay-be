@@ -7,6 +7,7 @@ import {
 } from "../../interfaces/auth/auth-interfaces";
 import { getUserReceptionist } from "../../model/auth/user/user";
 import { encryptText } from "../../utils/encryptDecrpyt";
+import { logger } from "../logger/pino";
 
 export default function (passport: PassportStatic) {
   passport.use(
@@ -27,6 +28,8 @@ export default function (passport: PassportStatic) {
           const [user] = (await getUserReceptionist(
             userEmail
           )) as IResponseUserByEmail[];
+
+          logger.info({data: user, message: "User fetched from DB"});
           
           if (!user) {
             return done(null, false, {
