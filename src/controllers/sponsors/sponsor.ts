@@ -5,6 +5,7 @@ import { IPayloadInsertAdv } from "../../interfaces/sponsor/sponsor-interfaces";
 import fs from "fs";
 import path from "path";
 import { logger } from "../../config/logger/pino";
+import { getDatePartsInTimezone } from "../../interfaces/utils/date";
 
 const toFullUrl = (value: string) =>
     /^https?:\/\//i.test(value)
@@ -109,11 +110,18 @@ export const updateImageFromDb = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: "Gambar tidak ditemukan" });
         }
 
-        const currentDate = new Date().toISOString().slice(0, 10).replace(/-/g, "")
+        const currentDateParts = getDatePartsInTimezone("Asia/Jakarta");
+        const currentDate = `${currentDateParts.year}${String(currentDateParts.month).padStart(2, "0")}${String(currentDateParts.day).padStart(2, "0")}`;
         const body = req.body as Record<string, unknown>;
         const payload: IPayloadInsertAdv = {
             validFrom: String(body.validFrom ?? existing.validFrom),
-            validTo: body.showIndicator === "X" || body.showIndicator === "true" ? currentDate : String(body.validTo ?? existing.validTo),
+            validTo:
+                (body.showIndicator === "X" || body.showIndicator === "true")
+                    ? Math.max(
+                        Number(body.validTo ?? existing.validTo),
+                        Number(currentDate)
+                    ).toString().padStart(8, "0")
+                    : String(body.validTo ?? existing.validTo),
             showIndicator:
                 body.showIndicator === undefined
                     ? existing.showIndicator
