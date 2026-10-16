@@ -10,12 +10,29 @@ import { deleteImageController, getAllImagesController, insertImageFileToDb, upd
 
 const router = express.Router();
 
-export const uploadDirectory = path.resolve("assets", "images", "sponsor");
-fs.mkdirSync(uploadDirectory, { recursive: true });
+export const sponsorUploadDirectory = path.resolve("assets", "images", "sponsor");
+
+const uploadRoot = path.resolve("assets", "images");
 
 export const upload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, callback) => callback(null, uploadDirectory),
+    destination: (req, _file, callback) => {
+      const category = req.query.category as string;
+
+      const allowedCategories = ["sponsor", "flyer", "product"];
+
+      if (!allowedCategories.includes(category)) {
+        return callback(new Error("Invalid upload category"), "");
+      }
+
+      const destination = path.join(uploadRoot, category);
+
+      fs.mkdir(destination, { recursive: true }, (error) => {
+        if (error) return callback(error, "");
+
+        callback(null, destination);
+      });
+    },
 
     filename: (_req, file, callback) => {
       const originalName = path.basename(file.originalname);
@@ -40,7 +57,6 @@ export const upload = multer({
       );
     },
   }),
-
   limits: { fileSize: 5 * 1024 * 1024 },
 
   fileFilter: (_req, file, callback) => {
@@ -57,7 +73,7 @@ export const upload = multer({
 export default function sponsorRouter() {
   router.get("/images/:filename", (req, res) => {
     const filename = path.basename(req.params.filename);
-    return res.sendFile(filename, { root: uploadDirectory }, (error) => {
+    return res.sendFile(filename, { root: sponsorUploadDirectory }, (error) => {
       if (error && !res.headersSent) {
         res.status(404).json({
           success: false,

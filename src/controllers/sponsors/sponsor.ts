@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { deleteAdvImage, getAdvImageById, getAdvImages, insertAdvImage, removeStoredImage, updateAdvImage, validateAdvPayload } from "../../model/sponsor";
-import { upload, uploadDirectory } from "../../routes/sponsor/sponsor";
+import { upload, sponsorUploadDirectory } from "../../routes/sponsor/sponsor";
 import { IPayloadInsertAdv } from "../../interfaces/sponsor/sponsor-interfaces";
 import fs from "fs";
 import path from "path";
@@ -38,6 +38,7 @@ export const getAllImagesController = async (req: Request, res: Response) => {
 export const uploadImageController = (req: Request, res: Response, next: NextFunction) => {
     upload.single("image")(req, res, (error) => {
         if (error) {
+            logger.error({error})
             return res.status(400).json({
                 success: false,
                 message:
@@ -106,7 +107,7 @@ export const updateImageFromDb = async (req: Request, res: Response) => {
     try {
         const existing = await getAdvImageById(id);
         if (!existing) {
-            if (req.file) await removeStoredImage(req.file.filename, uploadDirectory);
+            if (req.file) await removeStoredImage(req.file.filename, sponsorUploadDirectory);
             return res.status(404).json({ success: false, message: "Gambar tidak ditemukan" });
         }
 
@@ -139,7 +140,7 @@ export const updateImageFromDb = async (req: Request, res: Response) => {
 
         const errors = validateAdvPayload(payload);
         if (errors.length) {
-            if (req.file) await removeStoredImage(req.file.filename, uploadDirectory);
+            if (req.file) await removeStoredImage(req.file.filename, sponsorUploadDirectory);
             return res.status(400).json({ success: false, message: errors.join(", ") });
         }
 
@@ -147,13 +148,13 @@ export const updateImageFromDb = async (req: Request, res: Response) => {
 
         const updated = await updateAdvImage(id, payload);
         if (!updated) {
-            if (req.file) await removeStoredImage(req.file.filename, uploadDirectory);
+            if (req.file) await removeStoredImage(req.file.filename, sponsorUploadDirectory);
             return res.status(404).json({ success: false, message: "Gambar tidak ditemukan" });
         }
 
         if (req.file && existing.imgUrl !== payload.imgUrl) {
             try {
-                await removeStoredImage(existing.imgUrl, uploadDirectory);
+                await removeStoredImage(existing.imgUrl, sponsorUploadDirectory);
             } catch (cleanupError) {
                 console.error("Gagal menghapus file gambar lama:", cleanupError);
             }
@@ -164,7 +165,7 @@ export const updateImageFromDb = async (req: Request, res: Response) => {
             data: updated,
         });
     } catch (error) {
-        if (req.file) await removeStoredImage(req.file.filename, uploadDirectory);
+        if (req.file) await removeStoredImage(req.file.filename, sponsorUploadDirectory);
         console.error("Gagal memperbarui gambar:", error);
         return res.status(500).json({ success: false, message: "Gagal memperbarui gambar" });
     }
@@ -186,7 +187,7 @@ export const deleteImageController = async (req: Request, res: Response) => {
         }
 
         try {
-            await removeStoredImage(deletedImage, uploadDirectory);
+            await removeStoredImage(deletedImage, sponsorUploadDirectory);
         } catch (cleanupError) {
             console.error("Gagal menghapus file gambar:", cleanupError);
         }

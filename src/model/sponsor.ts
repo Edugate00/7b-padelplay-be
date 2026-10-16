@@ -167,12 +167,18 @@ export function validateAdvPayload(payload: IPayloadInsertAdv): string[] {
   return errors;
 }
 
-export async function removeStoredImage(value: string, uploadDirectory: string): Promise<void> {
+export function validateFlyerPayload(payload: {imgUrl: string; distChan: string;}): string[] {
+  const errors: string[] = [];
+  if (payload.distChan.length !== 2) errors.push("distChan harus 2 karakter");
+  return errors;
+}
+
+export async function removeStoredImage(value: string, sponsorUploadDirectory: string): Promise<void> {
   if (!value || /^https?:\/\//i.test(value)) return;
 
   const filename = path.basename(value);
-  const imagePath = path.resolve(uploadDirectory, filename);
-  if (path.dirname(imagePath) !== uploadDirectory) return;
+  const imagePath = path.resolve(sponsorUploadDirectory, filename);
+  if (path.dirname(imagePath) !== sponsorUploadDirectory) return;
 
   try {
     await fs.promises.unlink(imagePath);
