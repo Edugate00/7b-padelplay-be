@@ -6,7 +6,9 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../../config/logger/pino";
 import { getDatePartsInTimezone } from "../../interfaces/utils/date";
-import { deleteFlyerImage, getFlyerImages, insertFlyerImage } from "../../model/flyer";
+import { deleteFlyerImage, getFlyerImages, insertFlyerImage, updateThumbnails, uploadSingleThumbnail } from "../../model/flyer";
+import { ThumbnailInput } from "../../types/images/images-type";
+import { getLastSegment } from "../../utils/commonUtils";
 
 const toFullUrl = (value: string) =>
     /^https?:\/\//i.test(value)
@@ -55,7 +57,7 @@ export const insertFlyerImageFileToDb = async (req: Request, res: Response) => {
         distChan: String(body.distChan ?? ""),
         imgType: String(body.imgType ?? 'FLYER')
     };
-    
+
     const errors = validateFlyerPayload(payload);
 
     if (errors.length) {
@@ -80,6 +82,103 @@ export const insertFlyerImageFileToDb = async (req: Request, res: Response) => {
         return res
             .status(500)
             .json({ success: false, message: "Gagal upload gambar" });
+    }
+}
+
+export const updateThumbnailsController = async (req: Request, res: Response) => {
+    try {
+        const selections: ThumbnailInput[] = JSON.parse(
+            req.body.selections
+        );
+
+        const files = req.files as
+            | Record<string, Express.Multer.File[]>
+            | undefined;
+
+        // 1. Every slot must be present.
+        if (
+            !Array.isArray(selections) ||
+            selections.length !== 3
+        ) {
+            return res.status(400).json({
+                message: "Exactly 3 thumbnails are required",
+            });
+        }
+
+        // 2. Validate every selection before saving anything.
+        for (let i = 0; i < 3; i++) {
+            const selection = selections[i];
+            const file = files?.[`thumbnail${i + 1}`]?.[0];
+
+            if (
+                !selection ||
+                !["upload", "saved"].includes(selection.source)
+            ) {
+                return res.status(400).json({
+                    message: `Invalid thumbnail ${i + 1}`,
+                });
+            }
+
+            if (selection.source === "saved") {
+                if (!selection.id || file) {
+                    return res.status(400).json({
+                        message: `Invalid saved thumbnail ${i + 1}`,
+                    });
+                }
+            }
+
+            if (selection.source === "upload" && !file) {
+                return res.status(400).json({
+                    message: `Thumbnail ${i + 1} requires an uploaded file`,
+                });
+            }
+        }
+
+        // 4. Verify that all saved images exist and belong
+        //    to this user (or are otherwise accessible to them).
+        const resolvedImages: {
+            slot: number;
+            imageUrl: string;
+        }[] = [];
+
+        for (let i = 0; i < 3; i++) {
+            const selection = selections[i];
+
+            if (selection.source === "saved") {
+                resolvedImages.push({
+                    slot: i+1,
+                    imageUrl: `/assets/images/flyer/${getLastSegment(selection.preview)}`,
+                });
+            } else if (selection.source === "upload") {
+                const file = files![`thumbnail${i + 1}`][0];
+                req.file = file
+
+                if (!file) {
+                    throw new Error("No image was uploaded");
+                }
+
+                resolvedImages.push({
+                    slot: i+1,
+                    imageUrl: `/assets/images/flyer/${file.filename}`,
+                });
+            }
+        }
+
+        // 6. Persist the three thumbnail associations.
+        await updateThumbnails(
+            req.user!.user.Location,
+            resolvedImages.sort((a, b) => a.slot - b.slot)
+        );
+
+        return res.status(200).json({
+            message: "Thumbnails updated successfully",
+            thumbnails: resolvedImages,
+        });
+    } catch (error) {
+        logger.error({ error }, "Error updating thumbnails");
+        return res.status(500).json({
+            message: "Error updating thumbnails"
+        });
     }
 }
 

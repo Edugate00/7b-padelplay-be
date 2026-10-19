@@ -18,6 +18,7 @@ export async function getUserByID(userID: string): Promise<IResponseUserByID> {
       T_ZUSERS.USER_EMAIL       AS USER_EMAIL,
       T_ZUSERS.PHONE_NUMBER     AS PHONE_NUMBER,
       T_ZUSERS.MEMBER_ID        AS MEMBER_ID,
+      T_ZUSERS.LOCATION         AS LOCATION,
       CASE
         WHEN T_ZUSERS.USER_GOOGLE_ID <> '' THEN 'X'
         ELSE ''

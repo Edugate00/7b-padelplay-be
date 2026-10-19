@@ -156,3 +156,7 @@ export function generateURLFrontend(endpoint: string) {
 
   return verifiedUrl;
 }
+
+export function getLastSegment(url: string): string {
+  return url.split('/').pop() ?? '';
+}

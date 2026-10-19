@@ -1,9 +1,8 @@
-import { runInsertQuery, runSelectQuery, runSelectSingleQuery } from "../config/db/db-helperQuery";
+import { runInsertQuery, runSelectQuery, runSelectSingleQuery, runUpdateQuery } from "../config/db/db-helperQuery";
+import { NextFunction, Request, Response } from "express";
 import mssql from "mssql";
-import { IAdvImage, IPayloadInsertAdv } from "../interfaces/sponsor/sponsor-interfaces";
-import path from "path";
-import fs from "fs";
 import { logger } from "../config/logger/pino";
+import { upload } from "../routes/sponsor/sponsor";
 
 const MANDT = process.env.CLIENT;
 const TABLE = `${process.env.DB_NAME!.toLowerCase()}.ZPDL_IMAGES`;
@@ -67,6 +66,47 @@ export async function insertFlyerImage(
     }
 }
 
+export async function updateThumbnails(distChan: string, resolvedImages: {
+    slot: number;
+    imageUrl: string;
+}[]) {
+    try {
+        logger.info({resolvedImages}, "images")
+        for (const image of resolvedImages) {
+            const query = `
+                UPDATE ${TABLE}
+                SET IMG_URL = @imgUrl
+                WHERE OBJ_ID = @distChan
+                AND IMG_TYPE = @imgType
+                AND MANDT = @Client
+                `
+
+            const result = await runUpdateQuery(query, {
+                imgUrl: {
+                    type: mssql.Char(255),
+                    value: image.imageUrl,
+                },
+                distChan: {
+                    type: mssql.Char(5),
+                    value: distChan,
+                },
+                imgType: {
+                    type: mssql.Char(10),
+                    value: `FLYER_${image.slot}`,
+                },
+                Client: {
+                    type: mssql.Char(3),
+                    value: MANDT,
+                },
+            });
+
+            return result;
+        }
+    } catch (error) {
+        logger.error({ error }, "Update thumbnails query error")
+    }
+}
+
 export async function deleteFlyerImage(imgUrl: string): Promise<string | undefined> {
     const query = `
     DELETE FROM ${TABLE}
@@ -81,3 +121,29 @@ export async function deleteFlyerImage(imgUrl: string): Promise<string | undefin
 
     return deleted?.IMG_URL;
 }
+
+export const uploadSingleThumbnail = (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        upload.single("image")(req, res, (error) => {
+            logger.info({
+                contentType: req.headers["content-type"],
+                contentLength: req.headers["content-length"],
+                transferEncoding: req.headers["transfer-encoding"],
+                aborted: req.aborted,
+                complete: req.complete,
+                hasFile: Boolean(req.file),
+                errorName: error?.name,
+                errorMessage: error?.message,
+                errorCode: error?.code,
+            }, "Multer upload result");
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+};

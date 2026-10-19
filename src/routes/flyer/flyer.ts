@@ -7,8 +7,9 @@ import { randomBytes } from "crypto";
 import verifyToken from "../../middleware/validators/verify-token";
 import { encryptFile } from "../../utils/encrypt/encryptFile";
 import { deleteImageController, getAllImagesController, insertImageFileToDb, updateImageFromDb, uploadImageController } from "../../controllers/sponsors/sponsor";
-import { deleteFlyerImageController, getAllFlyersController, insertFlyerImageFileToDb } from "../../controllers/flyers/flyer";
+import { deleteFlyerImageController, getAllFlyersController, insertFlyerImageFileToDb, updateThumbnailsController } from "../../controllers/flyers/flyer";
 import { deleteFlyerImage } from "../../model/flyer";
+import { upload } from "../sponsor/sponsor";
 
 const router = express.Router();
 
@@ -35,6 +36,13 @@ export default function flyerRouter() {
     router.put(
         "/images/:id", verifyToken, uploadImageController, updateImageFromDb
     );
+
+    router.put("/thumbnails", verifyToken,
+        upload.fields([
+            { name: "thumbnail1", maxCount: 1 },
+            { name: "thumbnail2", maxCount: 1 },
+            { name: "thumbnail3", maxCount: 1 },
+        ]), updateThumbnailsController)
 
     router.delete("/images", verifyToken, deleteFlyerImageController);
 
