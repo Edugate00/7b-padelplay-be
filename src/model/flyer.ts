@@ -71,7 +71,7 @@ export async function updateThumbnails(distChan: string, resolvedImages: {
     imageUrl: string;
 }[]) {
     try {
-        logger.info({resolvedImages}, "images")
+        logger.info({ resolvedImages }, "images")
         for (const image of resolvedImages) {
             const query = `
                 UPDATE ${TABLE}
@@ -146,4 +146,70 @@ export const uploadSingleThumbnail = (
             }
         });
     });
+};
+
+export const findUploadedFlyerImage = async (
+    imgType: string,
+    distChan: string
+): Promise<{ imgUrl: string }> => {
+    const params: Record<string, { type: any; value: any }> = {
+        client: { type: mssql.Char(3), value: MANDT },
+        imgType: { type: mssql.Char(15), value: imgType },
+        distChan: {
+            type: mssql.Char(3),
+            value: distChan || "91",
+        },
+    };
+
+    const query = `
+        SELECT TOP 1 IMG_URL AS imgUrl
+        FROM ${TABLE}
+        WHERE OBJ_ID = @distChan
+          AND IMG_TYPE = @imgType
+          AND MANDT = @client
+    `;
+
+    try {
+        logger.debug(
+            { imgType, distChan: distChan || "91" },
+            "Finding uploaded flyer image"
+        );
+
+        const result = await runSelectQuery(query, params) as
+            | { imgUrl: string }[]
+            | { imgUrl: string }
+            | null
+            | undefined;
+
+        // Handle either a single object or an array, depending on
+        // the return format of runSelectQuery.
+        const image = Array.isArray(result) ? result[0] : result;
+
+        if (!image?.imgUrl) {
+            logger.warn(
+                { imgType, distChan: distChan || "91" },
+                "No uploaded flyer image found"
+            );
+
+            throw new Error("Uploaded flyer image not found");
+        }
+
+        logger.info(
+            { imgType, distChan: distChan || "91" },
+            "Uploaded flyer image found"
+        );
+
+        return { imgUrl: image.imgUrl };
+    } catch (error: unknown) {
+        logger.error(
+            {
+                err: error,
+                imgType,
+                distChan: distChan || "91",
+            },
+            "Failed to find uploaded flyer image"
+        );
+
+        throw error;
+    }
 };

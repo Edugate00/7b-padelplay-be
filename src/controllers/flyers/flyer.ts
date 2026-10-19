@@ -6,10 +6,11 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../../config/logger/pino";
 import { getDatePartsInTimezone } from "../../interfaces/utils/date";
-import { deleteFlyerImage, getFlyerImages, insertFlyerImage, updateThumbnails, uploadSingleThumbnail } from "../../model/flyer";
+import { deleteFlyerImage, findUploadedFlyerImage, getFlyerImages, insertFlyerImage, updateThumbnails, uploadSingleThumbnail } from "../../model/flyer";
 import { ThumbnailInput } from "../../types/images/images-type";
 import { getLastSegment } from "../../utils/commonUtils";
 import { ISerilizeUser } from "../../interfaces/auth/auth-interfaces";
+import { flyerUploadDirectory } from "../../routes/flyer/flyer";
 
 const toFullUrl = (value: string) =>
     /^https?:\/\//i.test(value)
@@ -96,6 +97,12 @@ export const updateThumbnailsController = async (req: Request, res: Response) =>
             | Record<string, Express.Multer.File[]>
             | undefined;
 
+        const userData = req.user as {
+            freshToken: string;
+            serializeUser: ISerilizeUser;
+            user: ISerilizeUser;
+        }
+
         // 1. Every slot must be present.
         if (
             !Array.isArray(selections) ||
@@ -158,6 +165,13 @@ export const updateThumbnailsController = async (req: Request, res: Response) =>
                     throw new Error("No image was uploaded");
                 }
 
+                const imageToBeReplaced = await findUploadedFlyerImage(`FLYER_${i+1}`, userData.user.Location)
+
+                logger.info({imageToBeReplaced}, "image to be replaced")
+                if (imageToBeReplaced) {
+                    await removeStoredImage(imageToBeReplaced.imgUrl, flyerUploadDirectory)
+                }
+
                 resolvedImages.push({
                     slot: i + 1,
                     imageUrl: `/assets/images/flyer/${file.filename}`,
@@ -166,11 +180,6 @@ export const updateThumbnailsController = async (req: Request, res: Response) =>
         }
 
         // 6. Persist the three thumbnail associations.
-        const userData = req.user as {
-            freshToken: string;
-            serializeUser: ISerilizeUser;
-            user: ISerilizeUser;
-        }
 
         await updateThumbnails(
             userData.user.Location,
@@ -206,7 +215,7 @@ export const deleteFlyerImageController = async (req: Request, res: Response) =>
         }
 
         try {
-            await removeStoredImage(deletedImage, sponsorUploadDirectory);
+            await removeStoredImage(deletedImage, flyerUploadDirectory);
         } catch (cleanupError) {
             console.error("Gagal menghapus file gambar:", cleanupError);
         }
