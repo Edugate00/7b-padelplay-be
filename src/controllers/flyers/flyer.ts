@@ -9,6 +9,7 @@ import { getDatePartsInTimezone } from "../../interfaces/utils/date";
 import { deleteFlyerImage, getFlyerImages, insertFlyerImage, updateThumbnails, uploadSingleThumbnail } from "../../model/flyer";
 import { ThumbnailInput } from "../../types/images/images-type";
 import { getLastSegment } from "../../utils/commonUtils";
+import { ISerilizeUser } from "../../interfaces/auth/auth-interfaces";
 
 const toFullUrl = (value: string) =>
     /^https?:\/\//i.test(value)
@@ -146,7 +147,7 @@ export const updateThumbnailsController = async (req: Request, res: Response) =>
 
             if (selection.source === "saved") {
                 resolvedImages.push({
-                    slot: i+1,
+                    slot: i + 1,
                     imageUrl: `/assets/images/flyer/${getLastSegment(selection.preview)}`,
                 });
             } else if (selection.source === "upload") {
@@ -158,15 +159,21 @@ export const updateThumbnailsController = async (req: Request, res: Response) =>
                 }
 
                 resolvedImages.push({
-                    slot: i+1,
+                    slot: i + 1,
                     imageUrl: `/assets/images/flyer/${file.filename}`,
                 });
             }
         }
 
         // 6. Persist the three thumbnail associations.
+        const userData = req.user as {
+            freshToken: string;
+            serializeUser: ISerilizeUser;
+            user: ISerilizeUser;
+        }
+
         await updateThumbnails(
-            req.user!.user.Location,
+            userData.user.Location,
             resolvedImages.sort((a, b) => a.slot - b.slot)
         );
 
