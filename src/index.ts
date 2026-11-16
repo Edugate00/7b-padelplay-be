@@ -8,7 +8,6 @@ import passport from "passport";
 import baseRouter from "./routes/routes";
 import session from "express-session";
 import http from "http";
-import path from "path";
 
 /* ---------------------------- Router middleware --------------------------- */
 // --> init dotenv
@@ -120,7 +119,7 @@ app.get("/healthz", async (req, res) => {
 /* ---------------------------- Router middleware --------------------------- */
 
 app.get("/", (req, res) => {
-  res.send("Welcome to the Padel Admin API");
+  res.send("Welcome to Eduagte Pos");
 });
 
 app.use("/api", baseRouter());

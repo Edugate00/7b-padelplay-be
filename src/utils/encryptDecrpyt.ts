@@ -121,7 +121,7 @@ export async function dynamicExpiresJWT(
 
   const token = jwt.sign({ serilizedUser: dataToEmbed }, jwtSecretToken, {
     expiresIn, // string atau number
-    issuer: process.env.BACKEND_BASE_URL, // alamat pembuat JWT (opsional tapi baik diisi)
+    issuer: process.env.BACKEND_BASE_URL ? String(process.env.BACKEND_BASE_URL) : 'http://localhost:8000', // alamat pembuat JWT (opsional tapi baik diisi)
   });
 
   // Waktu sekarang & format tampilan
