@@ -8,7 +8,7 @@ const router = express.Router();
 
 export default function baseRouter() {
   router.get("/", (req, res) => {
-    res.send("Welcome in API Padel Admin");
+    res.send("Welcome to 7B POS api");
   });
 
   // --> get csrf token
@@ -24,7 +24,7 @@ export default function baseRouter() {
   });
 
   router.use("/auth", authRouter());
-  router.use("/resto", menuRouter);
+  router.use("/resto", menuRouter());
 
   return router;
 }

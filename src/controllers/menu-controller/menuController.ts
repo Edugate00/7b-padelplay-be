@@ -3,25 +3,23 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { getRestoMenu } from "../../utils/oDataRequest/OData-Resto";
 import { logger } from "../../config/logger/pino";
-import { convertRespMenu } from "../../converters/resto/converter-menu";
+import { IResponseMenu } from "../../interfaces/resto/menu-interface";
 
 export default async function getRestoMenuController(
-    _req: Request,
+    req: Request,
     res: Response,
 ): Promise<void> {
     // Dari server, bukan dari query frontend, supaya kasir tidak bisa meminta channel lain
     const distChan = process.env.POS_DIST_CHAN || "01";
-    logger.info(distChan)
 
     try {
-        const raw = await getRestoMenu(distChan);
-        logger.info(raw)
-        const items = convertRespMenu(raw);
+        const items = await getRestoMenu(distChan) as IResponseMenu;
+        const listMenu = items.d.results[0].listMenu.results
 
         res.status(200).json({
             success: true,
             message: "Success fetch menu",
-            data: { listMenu: items },
+            data: { listMenu },
         });
     } catch (error) {
         if (axios.isAxiosError(error)) {

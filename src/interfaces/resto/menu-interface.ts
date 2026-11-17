@@ -1,14 +1,4 @@
 // interfaces/resto/menu-interface.ts
-export interface IRestoMenuRaw {
-    materialName: string;
-    materialDesc: string;
-    materialCondition: string;
-    unit: string;
-    unitDesc: string;
-    unitPrice: string;
-    imgUrl: string;
-}
-
 export interface IRestoMenuItem {
     material: string;
     materialDesc: string;
@@ -17,6 +7,17 @@ export interface IRestoMenuItem {
     unitDesc: string;
     unitPrice: number;
     imgUrl: string;
-    category: "Minuman" | "Makanan" | "Lainnya";
-    hasPrice: boolean;
+    category: "Minuman" | "Makanan" | "";
+}
+
+export interface IResponseMenu {
+    d: {
+        results: [
+            {
+                listMenu: {
+                    results: IRestoMenuItem[]
+                }
+            }
+        ]
+    }
 }
