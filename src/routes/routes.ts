@@ -1,8 +1,7 @@
 import csurf from "csurf";
 import express from "express";
 import authRouter from "./auth/auth-routes";
-import path from "path";
-import fs from "fs";
+import menuRouter from "./menu/menu-routes";
 
 const router = express.Router();
 
@@ -25,6 +24,7 @@ export default function baseRouter() {
   });
 
   router.use("/auth", authRouter());
+  router.use("/resto", menuRouter);
 
   return router;
 }
