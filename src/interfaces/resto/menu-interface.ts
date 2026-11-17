@@ -7,6 +7,7 @@ export interface IRestoMenuRaw {
     unitDesc: string;
     unitPrice: string;
     imgUrl: string;
+    category: string;
 }
 
 export interface IRestoMenuItem {
@@ -17,6 +18,6 @@ export interface IRestoMenuItem {
     unitDesc: string;
     unitPrice: number;
     imgUrl: string;
-    category: "Minuman" | "Makanan" | "Lainnya";
+    category: string;
     hasPrice: boolean;
 }

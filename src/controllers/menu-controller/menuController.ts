@@ -11,11 +11,9 @@ export default async function getRestoMenuController(
 ): Promise<void> {
     // Dari server, bukan dari query frontend, supaya kasir tidak bisa meminta channel lain
     const distChan = process.env.POS_DIST_CHAN || "01";
-    logger.info(distChan)
-
     try {
+
         const raw = await getRestoMenu(distChan);
-        logger.info(raw)
         const items = convertRespMenu(raw);
 
         res.status(200).json({

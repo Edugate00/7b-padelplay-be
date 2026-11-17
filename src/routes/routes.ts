@@ -24,7 +24,7 @@ export default function baseRouter() {
   });
 
   router.use("/auth", authRouter());
-  router.use("/resto", menuRouter);
+  router.use("/resto", menuRouter());
 
   return router;
 }
