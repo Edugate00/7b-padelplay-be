@@ -19,7 +19,7 @@ export function convertRespMenu(raw: any): IRestoMenuItem[] {
       unitDesc: r.unitDesc,
       unitPrice: price,
       imgUrl: r.imgUrl,
-      category: "Makanan",
+      category: r.category,
       hasPrice: price > 0,
     };
   });
