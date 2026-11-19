@@ -4,9 +4,7 @@ import { config } from "dotenv";
 config({ override: true });
 
 const allowedOrigins = [
-  process.env.PADEL_APP_BASE_URL,
   process.env.FRONTEND_DEVELOPMENT_URL,
-  "http://localhost:5173",
 ].filter((url): url is string => Boolean(url));
 
 const corsOptions: CorsOptions = {
