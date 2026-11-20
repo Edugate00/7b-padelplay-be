@@ -12,12 +12,6 @@ export interface IRestoMenuItem {
 
 export interface IResponseMenu {
     d: {
-        results: [
-            {
-                listMenu: {
-                    results: IRestoMenuItem[]
-                }
-            }
-        ]
+        results: IRestoMenuItem[]
     }
 }

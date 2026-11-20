@@ -13,8 +13,8 @@ export default async function getRestoMenuController(
     const distChan = process.env.POS_DIST_CHAN || "01";
 
     try {
-        const items = await getRestoMenu(distChan) as IResponseMenu;
-        const listMenu = items.d.results[0].listMenu.results
+        const items = await getRestoMenu(distChan) as IResponseMenu
+        const listMenu = items.d.results
 
         res.status(200).json({
             success: true,
@@ -22,6 +22,7 @@ export default async function getRestoMenuController(
             data: { listMenu },
         });
     } catch (error) {
+        console.error(error)
         if (axios.isAxiosError(error)) {
             logger.error(
                 {

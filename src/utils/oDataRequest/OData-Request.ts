@@ -25,7 +25,6 @@ export async function requestReadWithParams<T = unknown>(
   // pastikan string tanpa cast "as string"
   const raw = generateQueryParams(params, endpoint);
   const fullpath = typeof raw === "string" ? raw : String(raw);
-
   const { data } = await sap.get<T>(fullpath);
   return data;
 }
